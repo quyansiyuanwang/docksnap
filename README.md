@@ -39,6 +39,19 @@ layout produces, and one that has to track the Dock when its item count changes.
 
 ## Install
 
+### Download
+
+Download `DockSnap-<version>.zip` from the
+[releases](https://github.com/quyansiyuanwang/docksnap/releases) page, move
+`DockSnap.app` to `/Applications` (or `~/Applications`), then clear the
+quarantine attribute. Release builds are signed ad-hoc and are not notarized,
+so Gatekeeper blocks the first launch otherwise.
+
+```sh
+xattr -dr com.apple.quarantine /Applications/DockSnap.app
+open /Applications/DockSnap.app
+```
+
 ### Build from source
 
 ```sh
