@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Carbon.HIToolbox
 
 @MainActor
@@ -15,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         configureStatusItem()
+        writeStatusFile()
 
         let modifiers = UInt32(controlKey | optionKey | cmdKey)
         HotKeys.shared.register(keyCode: UInt32(kVK_ANSI_S), modifiers: modifiers) { [weak self] in
@@ -59,6 +61,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "DockSnap")
         image?.isTemplate = true
         return image
+    }
+
+    private func writeStatusFile() {
+        let trusted = AXIsProcessTrusted()
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let text = "trusted=\(trusted)\nversion=\(version)\n"
+        try? text.write(
+            to: FrameStore.directory.appendingPathComponent("status.txt"),
+            atomically: true,
+            encoding: .utf8
+        )
     }
 
     private func flash(_ message: String) {

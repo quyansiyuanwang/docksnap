@@ -28,16 +28,29 @@ enum WindowLayout {
         return FrameStore.save(frame) ? .saved : .noWindow
     }
 
-    /// `dockAligned` replaces the saved left edge with the Dock's current left
-    /// edge; the rest of the recorded frame is kept, clamped to stay on screen.
+    /// `dockAligned` ignores the saved size and fills the whole usable height
+    /// from the Dock's current left edge to the screen's right edge. Otherwise
+    /// the recorded frame is reapplied exactly (clamped to stay on screen).
     static func restore(dockAligned: Bool) -> Outcome {
         guard AXIsProcessTrusted() else { return .needsAccessibility }
         guard let window = AX.frontWindow() else { return .noWindow }
-        guard let saved = FrameStore.load() else { return .noSavedFrame }
 
-        var target = saved
-        if dockAligned, let dock = DockGeometry.listFrame() {
-            target.origin.x = dock.minX
+        var target: CGRect
+        if dockAligned {
+            guard
+                let dock = DockGeometry.listFrame(),
+                let visible = Screens.visibleFrame(containing: CGPoint(x: dock.midX, y: dock.midY))
+            else { return .noWindow }
+
+            target = CGRect(
+                x: dock.minX,
+                y: visible.minY,
+                width: max(0, visible.maxX - dock.minX),
+                height: visible.height
+            )
+        } else {
+            guard let saved = FrameStore.load() else { return .noSavedFrame }
+            target = saved
         }
 
         let center = CGPoint(x: target.midX, y: target.midY)
