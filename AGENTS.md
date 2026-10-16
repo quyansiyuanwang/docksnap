@@ -16,4 +16,7 @@
 - Bundle with `./build.sh`. The app is signed with the local identity
   `DockSnap Local Signing` (see `scripts/create-signing-identity.sh`) so the
   Accessibility permission is not lost on rebuilds.
-- Docs: professional/technical tone, no emoji, no colloquialisms.
+- Docs: professional/technical tone, no emoji, no colloquialisms. The README is
+  bilingual: `README.md` (English) and `README.zh-CN.md` (简体中文), each linking
+  to the other. Keep them in sync when behaviour changes. Other docs stay in
+  English.

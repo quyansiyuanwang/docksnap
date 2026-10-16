@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/quyansiyuanwang/docksnap/actions/workflows/ci.yml/badge.svg)](https://github.com/quyansiyuanwang/docksnap/actions/workflows/ci.yml)
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 A tiny macOS menu bar utility that remembers window frames and puts them back,
 with the left edge aligned to the Dock.
 
