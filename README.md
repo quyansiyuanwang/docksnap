@@ -166,6 +166,9 @@ The source layout:
 | `Sources/DockSnap/FrameStore.swift` | Persisted frame |
 | `Sources/DockSnap/CLI.swift` | Headless commands |
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions and the pull request
+checklist.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

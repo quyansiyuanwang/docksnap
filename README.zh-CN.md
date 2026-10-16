@@ -137,6 +137,8 @@ swift test  -Xswiftc -warnings-as-errors
 | `Sources/DockSnap/FrameStore.swift` | 边框持久化 |
 | `Sources/DockSnap/CLI.swift` | 无界面命令 |
 
+约定与拉取请求检查项见 [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md)。
+
 ## 许可证
 
 MIT，见 [LICENSE](LICENSE)。
