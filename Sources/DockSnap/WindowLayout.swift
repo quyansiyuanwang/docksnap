@@ -25,7 +25,7 @@ enum WindowLayout {
     static func saveCurrent() -> Outcome {
         guard AXIsProcessTrusted() else { return .needsAccessibility }
         guard let window = AX.frontWindow(), let frame = AX.frame(of: window) else { return .noWindow }
-        return FrameStore.save(frame) ? .saved : .noWindow
+        return FrameStore.shared.save(frame) ? .saved : .noWindow
     }
 
     /// `dockAligned` ignores the saved size and fills the whole usable height
@@ -49,7 +49,7 @@ enum WindowLayout {
                 height: visible.height
             )
         } else {
-            guard let saved = FrameStore.load() else { return .noSavedFrame }
+            guard let saved = FrameStore.shared.load() else { return .noSavedFrame }
             target = saved
         }
 

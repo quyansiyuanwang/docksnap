@@ -1,7 +1,9 @@
-import AppKit
+import CoreGraphics
+import Foundation
 
-/// Persisted window frame, stored under Application Support.
-struct SavedFrame: Codable, Sendable {
+/// A persisted window frame. Coordinates use the Accessibility API space
+/// (origin at the top-left of the primary display, y growing downwards).
+struct SavedFrame: Codable, Sendable, Equatable {
     var x: Double
     var y: Double
     var width: Double
@@ -19,21 +21,30 @@ struct SavedFrame: Codable, Sendable {
     }
 }
 
-enum FrameStore {
-    static var directory: URL {
-        let base = FileManager.default
+/// Reads and writes the single saved frame as JSON. The directory is injectable
+/// so tests never touch the real Application Support location.
+struct FrameStore: Sendable {
+    static let shared = FrameStore(directory: defaultDirectory)
+
+    static var defaultDirectory: URL {
+        FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("DockSnap", isDirectory: true)
-        try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
-        return base
     }
 
-    static var fileURL: URL {
+    let directory: URL
+
+    init(directory: URL) {
+        self.directory = directory
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+
+    var fileURL: URL {
         directory.appendingPathComponent("frame.json")
     }
 
     @discardableResult
-    static func save(_ rect: CGRect) -> Bool {
+    func save(_ rect: CGRect) -> Bool {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -45,7 +56,7 @@ enum FrameStore {
         }
     }
 
-    static func load() -> CGRect? {
+    func load() -> CGRect? {
         guard let data = try? Data(contentsOf: fileURL) else { return nil }
         return (try? JSONDecoder().decode(SavedFrame.self, from: data))?.rect
     }

@@ -68,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let text = "trusted=\(trusted)\nversion=\(version)\n"
         try? text.write(
-            to: FrameStore.directory.appendingPathComponent("status.txt"),
+            to: FrameStore.shared.directory.appendingPathComponent("status.txt"),
             atomically: true,
             encoding: .utf8
         )
@@ -120,7 +120,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showSavedWindow() {
         let text: String
-        if let frame = FrameStore.load() {
+        if let frame = FrameStore.shared.load() {
             text = "x=\(Int(frame.origin.x))  y=\(Int(frame.origin.y))  \(Int(frame.width))×\(Int(frame.height))"
         } else {
             text = "尚未保存任何窗口"

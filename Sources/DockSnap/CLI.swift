@@ -26,7 +26,7 @@ enum CLI {
             return outcome == .applied ? 0 : 1
 
         case "show":
-            if let frame = FrameStore.load() {
+            if let frame = FrameStore.shared.load() {
                 print("x=\(frame.origin.x) y=\(frame.origin.y) w=\(frame.width) h=\(frame.height)")
             } else {
                 print("无已保存的窗口")
@@ -40,7 +40,7 @@ enum CLI {
             } else {
                 print("dock: 读取失败")
             }
-            if let frame = FrameStore.load() {
+            if let frame = FrameStore.shared.load() {
                 print("saved: x=\(frame.origin.x) y=\(frame.origin.y) w=\(frame.width) h=\(frame.height)")
             } else {
                 print("saved: 无")
