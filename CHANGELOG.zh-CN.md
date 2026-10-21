@@ -6,6 +6,12 @@
 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循
 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### 新增
+
+- 全局快捷键共享的修饰键选项；菜单灰色快捷键提示立即同步更新，选择跨启动保留。
+
 ## [0.1.0] - 2026-10-16
 
 ### 新增
