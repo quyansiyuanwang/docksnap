@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Restore full-screen windows on macOS 27: leave the full-screen space before
+  writing the frame, because full-screen windows reject `AXPosition` and ignore
+  `AXSize`.
+- Read the frame back after writing and retry only the attributes that still
+  differ. This prevents a trailing `AXPosition` write from undoing the requested
+  size in applications that re-anchor while moving.
+- Report a failure when an application ignores the requested size completely,
+  while still accepting a size constrained to a grid or minimum.
+
 ## [0.1.0] - 2026-10-16
 
 ### Added

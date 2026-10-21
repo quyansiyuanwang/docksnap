@@ -26,6 +26,10 @@ layout produces, and one that has to track the Dock when its item count changes.
 - Restore it with the left edge aligned to the Dock's icon strip, filling the
   full usable height and the width up to the right screen edge.
 - Restore the recorded frame exactly.
+- Leave macOS full-screen state before restoring, so a window on a full-screen
+  space can be moved and resized again.
+- Verify every write by reading the resulting frame back; only the attributes
+  that did not settle are retried.
 - The Dock's geometry is read on every restore, so the layout stays correct when
   Dock items are added or removed, or when the Dock moves.
 - Global hot keys that do not need extra permissions of their own.
@@ -35,7 +39,7 @@ layout produces, and one that has to track the Dock when its item count changes.
 
 | | |
 | --- | --- |
-| macOS | 13 or later (developed on macOS 15) |
+| macOS | 13 or later (developed on macOS 15, verified on macOS 27) |
 | Swift | 6.0+ (`swift-tools-version: 6.0`) |
 | Dependencies | none |
 
@@ -131,6 +135,12 @@ and no private frameworks are involved.
   from the visible frame, and `width` from the Dock's left edge to the screen's
   right edge. The result is clamped on screen.
 
+Before writing the frame, a window that reports `AXFullScreen` is returned to the
+desktop: full-screen windows reject position changes and ignore size changes.
+`AXPosition` is written before `AXSize` because some applications undo a resize
+when the position is written afterwards. The resulting frame is then read back,
+and only the attributes that still differ are corrected.
+
 Coordinates are converted between Cocoa's bottom-left origin and the
 Accessibility API's top-left origin in `Screens.swift`.
 
@@ -138,9 +148,12 @@ Accessibility API's top-left origin in `Screens.swift`.
 
 - One frame is remembered, not a set of named layouts.
 - The action always applies to the frontmost window.
+- A full-screen window leaves its full-screen space before it is restored.
 - Some applications snap their window size to a grid (terminals snap to
   character cells), so the right or bottom edge can be a few pixels short of the
-  screen. DockSnap requests the full area; the application decides the rest.
+  screen. DockSnap requests the full area; if the size changes but does not reach
+  the requested value, the application's final size is accepted. A size that is
+  ignored completely is reported as a failure.
 - Global hot keys use Carbon's `RegisterEventHotKey`. They work without the
   Accessibility permission, which is only needed to move windows.
 
@@ -161,6 +174,7 @@ The source layout:
 | `Sources/DockSnap/HotKeys.swift` | Carbon global hot keys |
 | `Sources/DockSnap/WindowLayout.swift` | Save / restore behaviour |
 | `Sources/DockSnap/AX.swift` | Accessibility wrappers |
+| `Sources/DockSnap/FramePlan.swift` | Attribute writes needed to reach a frame |
 | `Sources/DockSnap/DockGeometry.swift` | Dock icon-strip frame |
 | `Sources/DockSnap/Screens.swift` | Coordinate conversion and clamping |
 | `Sources/DockSnap/FrameStore.swift` | Persisted frame |

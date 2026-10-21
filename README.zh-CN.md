@@ -19,6 +19,8 @@ DockSnap 记录当前焦点窗口的边框并可将其还原。促使这个工�
 - 记录当前焦点窗口的 `AXPosition` 与 `AXSize`。
 - 还原时左沿与程序坞图标栏对齐，纵向铺满可用高度，横向一直延伸到屏幕右沿。
 - 也可以按记录的边框精确还原。
+- 还原前退出 macOS 全屏状态，使位于全屏空间的窗口重新可移动、可调整大小。
+- 每次写入后读回实际边框校验，只重试仍未生效的属性。
 - 每次还原都重新读取程序坞的几何信息，因此增删程序坞图标、移动程序坞后布局依然正确。
 - 全局快捷键本身不需要额外权限。
 - 提供无界面的命令行接口，便于脚本化与测试。
@@ -27,7 +29,7 @@ DockSnap 记录当前焦点窗口的边框并可将其还原。促使这个工�
 
 | | |
 | --- | --- |
-| macOS | 13 或更高（在 macOS 15 上开发） |
+| macOS | 13 或更高（在 macOS 15 上开发，在 macOS 27 上验证） |
 | Swift | 6.0+（`swift-tools-version: 6.0`） |
 | 依赖 | 无 |
 
@@ -106,13 +108,16 @@ DockSnap.app/Contents/MacOS/DockSnap status
 - `NSScreen.visibleFrame` 给出可用区域（已排除菜单栏与程序坞）。
 - "左沿对齐程序坞"的还原把两者组合起来：`x` 取自程序坞，`y` 与 `height` 取自可见区域，`width` 从程序坞左沿延伸到屏幕右沿，最后再做屏幕内钳制。
 
+写入边框前，若窗口报告 `AXFullScreen`，会先让其退出全屏：全屏窗口会拒绝位置写入并忽略尺寸写入。写入顺序固定为先 `AXPosition` 后 `AXSize`，因为部分应用在收到后置的位置写入时会撤销尺寸调整。随后读回实际边框，只对仍有差异的属性进行纠正。
+
 坐标在 Cocoa 的左下原点与辅助功能接口的左上原点之间转换，逻辑集中在 `Screens.swift`。
 
 ## 限制
 
 - 只记忆一个窗口边框，不是一组具名布局。
 - 操作对象始终是最前方的窗口。
-- 部分应用会把窗口尺寸对齐到网格（终端会对齐到字符单元格），因此右沿或下沿可能比屏幕边缘差几个像素。DockSnap 请求的是完整区域，最终由应用决定。
+- 还原全屏窗口前会先退出全屏空间。
+- 部分应用会把窗口尺寸对齐到网格（终端会对齐到字符单元格），因此右沿或下沿可能比屏幕边缘差几个像素。DockSnap 请求的是完整区域；若尺寸发生了变化但未达到请求值，则接受应用最终决定的尺寸；若尺寸完全没有变化，则报告失败。
 - 全局快捷键使用 Carbon 的 `RegisterEventHotKey`，本身不需要辅助功能权限；该权限只在移动窗口时才需要。
 
 ## 开发
@@ -132,6 +137,7 @@ swift test  -Xswiftc -warnings-as-errors
 | `Sources/DockSnap/HotKeys.swift` | Carbon 全局快捷键 |
 | `Sources/DockSnap/WindowLayout.swift` | 保存 / 还原逻辑 |
 | `Sources/DockSnap/AX.swift` | 辅助功能接口封装 |
+| `Sources/DockSnap/FramePlan.swift` | 到达目标边框所需的属性写入 |
 | `Sources/DockSnap/DockGeometry.swift` | 程序坞图标栏边框 |
 | `Sources/DockSnap/Screens.swift` | 坐标转换与钳制 |
 | `Sources/DockSnap/FrameStore.swift` | 边框持久化 |
