@@ -15,12 +15,12 @@ final class HotKeys {
 
     private init() {}
 
-    func register(keyCode: UInt32, modifiers: UInt32, handler: @escaping @MainActor () -> Void) {
+    @discardableResult
+    func register(keyCode: UInt32, modifiers: UInt32, handler: @escaping @MainActor () -> Void) -> Bool {
         installIfNeeded()
 
         let identifier = nextIdentifier
         nextIdentifier += 1
-        handlers[identifier] = handler
 
         var reference: EventHotKeyRef?
         let hotKeyID = EventHotKeyID(signature: OSType(0x44_53_4E_50), id: identifier) // 'DSNP'
@@ -32,9 +32,19 @@ final class HotKeys {
             0,
             &reference
         )
-        if status == noErr, let reference {
-            references.append(reference)
+        guard status == noErr, let reference else { return false }
+
+        handlers[identifier] = handler
+        references.append(reference)
+        return true
+    }
+
+    func unregisterAll() {
+        for reference in references {
+            _ = UnregisterEventHotKey(reference)
         }
+        references.removeAll()
+        handlers.removeAll()
     }
 
     fileprivate func fire(_ identifier: UInt32) {

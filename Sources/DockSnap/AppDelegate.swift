@@ -7,6 +7,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let symbolName = "rectangle.split.2x1"
     private var statusItem: NSStatusItem?
     private var flashTask: Task<Void, Never>?
+    private let modifierStore = HotKeyModifiersStore()
+    private var selectedModifiers = HotKeyModifiers.defaultValue
+    private var saveMenuItem: NSMenuItem?
+    private var restoreDockAlignedMenuItem: NSMenuItem?
+    private var restoreExactMenuItem: NSMenuItem?
+    private var modifierMenuItems: [HotKeyModifiers: NSMenuItem] = [:]
 
     private enum Action {
         case saveCurrent
@@ -15,18 +21,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        selectedModifiers = modifierStore.load()
         configureStatusItem()
         writeStatusFile()
 
-        let modifiers = UInt32(controlKey | optionKey | cmdKey)
-        HotKeys.shared.register(keyCode: UInt32(kVK_ANSI_S), modifiers: modifiers) { [weak self] in
-            self?.perform(.saveCurrent)
-        }
-        HotKeys.shared.register(keyCode: UInt32(kVK_ANSI_R), modifiers: modifiers) { [weak self] in
-            self?.perform(.restoreDockAligned)
-        }
-        HotKeys.shared.register(keyCode: UInt32(kVK_ANSI_E), modifiers: modifiers) { [weak self] in
-            self?.perform(.restoreExact)
+        if !registerHotKeys(for: selectedModifiers) {
+            let fallback = HotKeyModifiers.defaultValue
+            if selectedModifiers != fallback, registerHotKeys(for: fallback) {
+                selectedModifiers = fallback
+                modifierStore.save(fallback)
+                updateShortcutPresentation()
+                flash("快捷键不可用，已恢复默认")
+            } else {
+                flash("全局快捷键注册失败")
+            }
         }
     }
 
@@ -37,9 +45,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.image = statusImage()
 
         let menu = NSMenu()
-        menu.addItem(menuItem("保存当前窗口", #selector(saveCurrentWindow), "s"))
-        menu.addItem(menuItem("还原（左沿对齐程序坞）", #selector(restoreDockAlignedWindow), "r"))
-        menu.addItem(menuItem("还原（精确）", #selector(restoreExactWindow), "e"))
+        let saveItem = menuItem("保存当前窗口", #selector(saveCurrentWindow), "s")
+        let restoreDockAlignedItem = menuItem("还原（左沿对齐程序坞）", #selector(restoreDockAlignedWindow), "r")
+        let restoreExactItem = menuItem("还原（精确）", #selector(restoreExactWindow), "e")
+        saveMenuItem = saveItem
+        restoreDockAlignedMenuItem = restoreDockAlignedItem
+        restoreExactMenuItem = restoreExactItem
+
+        menu.addItem(saveItem)
+        menu.addItem(restoreDockAlignedItem)
+        menu.addItem(restoreExactItem)
+        menu.addItem(.separator())
+        menu.addItem(modifierMenuItem())
         menu.addItem(.separator())
         menu.addItem(menuItem("查看已保存的窗口", #selector(showSavedWindow), ""))
         menu.addItem(menuItem("辅助功能设置…", #selector(openAccessibilitySettings), ""))
@@ -52,9 +69,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func menuItem(_ title: String, _ selector: Selector, _ keyEquivalent: String) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: selector, keyEquivalent: keyEquivalent)
         if !keyEquivalent.isEmpty {
-            item.keyEquivalentModifierMask = [.control, .option, .command]
+            item.keyEquivalentModifierMask = selectedModifiers.appKitFlags
         }
         return item
+    }
+
+    private func modifierMenuItem() -> NSMenuItem {
+        let title = "快捷键修饰键"
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        let submenu = NSMenu(title: title)
+
+        for modifiers in HotKeyModifiers.allCases {
+            let choice = NSMenuItem(title: modifiers.symbol, action: #selector(selectHotKeyModifiers(_:)), keyEquivalent: "")
+            choice.target = self
+            choice.representedObject = modifiers.rawValue
+            choice.state = modifiers == selectedModifiers ? .on : .off
+            submenu.addItem(choice)
+            modifierMenuItems[modifiers] = choice
+        }
+
+        item.submenu = submenu
+        return item
+    }
+
+    private func updateShortcutPresentation() {
+        let flags = selectedModifiers.appKitFlags
+        saveMenuItem?.keyEquivalentModifierMask = flags
+        restoreDockAlignedMenuItem?.keyEquivalentModifierMask = flags
+        restoreExactMenuItem?.keyEquivalentModifierMask = flags
+
+        for (modifiers, item) in modifierMenuItems {
+            item.state = modifiers == selectedModifiers ? .on : .off
+        }
     }
 
     private func statusImage() -> NSImage? {
@@ -85,6 +131,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.statusItem?.button?.title = ""
             self.statusItem?.button?.image = self.statusImage()
         }
+    }
+
+    // MARK: - Hot keys
+
+    private func registerHotKeys(for modifiers: HotKeyModifiers) -> Bool {
+        HotKeys.shared.unregisterAll()
+
+        let registrations: [(keyCode: UInt32, action: Action)] = [
+            (UInt32(kVK_ANSI_S), .saveCurrent),
+            (UInt32(kVK_ANSI_R), .restoreDockAligned),
+            (UInt32(kVK_ANSI_E), .restoreExact)
+        ]
+
+        for registration in registrations {
+            let registered = HotKeys.shared.register(
+                keyCode: registration.keyCode,
+                modifiers: modifiers.carbonFlags
+            ) { [weak self] in
+                self?.perform(registration.action)
+            }
+            guard registered else {
+                HotKeys.shared.unregisterAll()
+                return false
+            }
+        }
+        return true
+    }
+
+    @objc private func selectHotKeyModifiers(_ sender: NSMenuItem) {
+        guard let rawValue = sender.representedObject as? String,
+              let modifiers = HotKeyModifiers(rawValue: rawValue),
+              modifiers != selectedModifiers else {
+            return
+        }
+
+        let previousModifiers = selectedModifiers
+        guard registerHotKeys(for: modifiers) else {
+            _ = registerHotKeys(for: previousModifiers)
+            flash("\(modifiers.symbol) 快捷键注册失败")
+            return
+        }
+
+        selectedModifiers = modifiers
+        modifierStore.save(modifiers)
+        updateShortcutPresentation()
+        flash("快捷键已设为 \(modifiers.symbol)")
     }
 
     // MARK: - Actions

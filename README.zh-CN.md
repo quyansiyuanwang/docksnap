@@ -20,7 +20,7 @@ DockSnap 记录当前焦点窗口的边框并可将其还原。促使这个工�
 - 还原时左沿与程序坞图标栏对齐，纵向铺满可用高度，横向一直延伸到屏幕右沿。
 - 也可以按记录的边框精确还原。
 - 每次还原都重新读取程序坞的几何信息，因此增删程序坞图标、移动程序坞后布局依然正确。
-- 全局快捷键本身不需要额外权限。
+- 全局快捷键共享一组可配置的修饰键，快捷键本身不需要额外权限。
 - 提供无界面的命令行接口，便于脚本化与测试。
 
 ## 环境要求
@@ -75,17 +75,21 @@ security delete-identity -c "DockSnap Local Signing"
 
 ### 全局快捷键
 
+下表列出默认快捷键。
+
 | 操作 | 快捷键 |
 | --- | --- |
 | 保存当前窗口 | `⌃⌥⌘S` |
 | 还原（左沿对齐程序坞） | `⌃⌥⌘R` |
 | 精确还原 | `⌃⌥⌘E` |
 
-可在 `Sources/DockSnap/AppDelegate.swift` 中修改（`kVK_ANSI_*` 常量）。
+可通过状态栏菜单的“快捷键修饰键”子菜单，为三个操作选择同一组修饰键：
+`⌃⌥⌘`、`⌃⌥⇧`、`⌃⇧`、`⌥⇧`、`⌃⌥`、`⌘⌥⇧`、`⌘⌃` 或 `⌘⌥`。按键字母仍为
+`S`、`R`、`E`；菜单右侧的灰色快捷键提示会立即同步更新，选择也会跨启动保留。
 
 ### 菜单栏
 
-状态栏菜单提供同样的命令，另有"查看已保存的窗口"与"辅助功能设置"。
+状态栏菜单提供同样的命令，另有“快捷键修饰键”、“查看已保存的窗口”与“辅助功能设置”。
 
 ### 命令行
 
@@ -130,6 +134,7 @@ swift test  -Xswiftc -warnings-as-errors
 | `Sources/DockSnap/DockSnapMain.swift` | 入口；图形界面或无界面命令行 |
 | `Sources/DockSnap/AppDelegate.swift` | 状态栏项目与菜单 |
 | `Sources/DockSnap/HotKeys.swift` | Carbon 全局快捷键 |
+| `Sources/DockSnap/HotKeyModifiers.swift` | 修饰键选项与持久化 |
 | `Sources/DockSnap/WindowLayout.swift` | 保存 / 还原逻辑 |
 | `Sources/DockSnap/AX.swift` | 辅助功能接口封装 |
 | `Sources/DockSnap/DockGeometry.swift` | 程序坞图标栏边框 |

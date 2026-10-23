@@ -28,7 +28,8 @@ layout produces, and one that has to track the Dock when its item count changes.
 - Restore the recorded frame exactly.
 - The Dock's geometry is read on every restore, so the layout stays correct when
   Dock items are added or removed, or when the Dock moves.
-- Global hot keys that do not need extra permissions of their own.
+- Global hot keys with a shared, configurable modifier combination; the hot keys
+  themselves do not need extra permissions.
 - A headless CLI for scripting and testing.
 
 ## Requirements
@@ -94,18 +95,23 @@ the permission again after every rebuild.
 
 ### Global hot keys
 
+The table below shows the default shortcuts.
+
 | Action | Shortcut |
 | --- | --- |
 | Save the focused window | `⌃⌥⌘S` |
 | Restore, left edge on the Dock | `⌃⌥⌘R` |
 | Restore exactly | `⌃⌥⌘E` |
 
-Change them in `Sources/DockSnap/AppDelegate.swift` (the `kVK_ANSI_*` constants).
+Use the **Modifier Keys** submenu in the status menu to select one shared
+combination for all three actions: `⌃⌥⌘`, `⌃⌥⇧`, `⌃⇧`, `⌥⇧`, `⌃⌥`, `⌘⌥⇧`,
+`⌘⌃`, or `⌘⌥`. The key letters remain `S`, `R`, and `E`; the gray shortcut hints
+in the menu update immediately, and the selection is retained across launches.
 
 ### Menu bar
 
-The status item exposes the same commands plus *Show saved window* and
-*Accessibility settings*.
+The status item exposes the same commands plus *Modifier Keys*, *Show saved
+window*, and *Accessibility settings*.
 
 ### Command line
 
@@ -159,6 +165,7 @@ The source layout:
 | `Sources/DockSnap/DockSnapMain.swift` | Entry point; GUI or headless CLI |
 | `Sources/DockSnap/AppDelegate.swift` | Status item and menu |
 | `Sources/DockSnap/HotKeys.swift` | Carbon global hot keys |
+| `Sources/DockSnap/HotKeyModifiers.swift` | Modifier choices and persistence |
 | `Sources/DockSnap/WindowLayout.swift` | Save / restore behaviour |
 | `Sources/DockSnap/AX.swift` | Accessibility wrappers |
 | `Sources/DockSnap/DockGeometry.swift` | Dock icon-strip frame |
