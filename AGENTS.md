@@ -28,3 +28,7 @@
   prefixes therefore matter: `feat:`, `fix:` and `perf:`/`refactor:` map to
   *Added*, *Fixed* and *Changed*; `docs:`, `ci:`, `build:`, `test:`, `style:`
   and `chore:` produce no entry unless the change is user-visible.
+- The release workflow reads the repository variables `CHANGELOG_LLM_BASE_URL`
+  and `CHANGELOG_LLM_MODEL` and the `CHANGELOG_LLM_API_KEY` secret.
+  `python3 scripts/changelog.py --tag vX.Y.Z --write` reproduces the changelog
+  locally, and `python3 scripts/changelog_test.py` runs its tests.
