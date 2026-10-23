@@ -492,6 +492,16 @@ def insert_section(
     return True
 
 
+def file_has_section(path: Path, version: str) -> bool:
+    return bool(
+        re.search(
+            r"^## \[{}\]".format(re.escape(version)),
+            path.read_text(encoding="utf-8"),
+            re.M,
+        )
+    )
+
+
 def existing_section(version: str) -> Optional[str]:
     text = CHANGELOG_FILES["en"].read_text(encoding="utf-8")
     match = re.search(
@@ -548,7 +558,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     date = tag_date(tag)
 
     existing = existing_section(version)
-    if existing and not args.force and not args.show_prompt:
+    both_present = existing is not None and file_has_section(
+        CHANGELOG_FILES["zh"], version
+    )
+    if both_present and not args.force and not args.show_prompt:
         print(
             "CHANGELOG already has a section for {}; leaving it untouched.".format(
                 version
@@ -606,7 +619,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     section,
                     version,
                     previous,
-                    force=args.force,
+                    force=args.force or not both_present,
                 )
                 or written
             )

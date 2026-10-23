@@ -155,6 +155,31 @@ class MarkdownTests(unittest.TestCase):
             self.assertLess(written.index("## [0.2.0]"), written.index("## [0.1.0]"))
             self.assertIn("[0.2.0]: https://github.com/", written)
 
+    def test_force_replaces_an_existing_section(self):
+        import json
+
+        entries = changelog.validate(json.loads(SAMPLE))
+        section = changelog.render_section(
+            "0.2.0", "2026-10-23", entries["en"], "en"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "CHANGELOG.md"
+            path.write_text(
+                HEADER
+                + "## [0.2.0] - 2026-10-23\n\n- Old text.\n\n"
+                + "## [0.1.0] - 2026-10-16\n",
+                encoding="utf-8",
+            )
+            self.assertTrue(
+                changelog.insert_section(
+                    path, section, "0.2.0", "v0.1.0", force=True
+                )
+            )
+            written = path.read_text(encoding="utf-8")
+            self.assertIn("A new feature.", written)
+            self.assertNotIn("Old text.", written)
+            self.assertEqual(written.count("## [0.2.0]"), 1)
+
     def test_existing_section_is_not_duplicated(self):
         import json
 
