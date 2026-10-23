@@ -21,6 +21,9 @@ jobs:
       - name: Swift version
         run: swift --version
 
+      - name: Check the changelog generator
+        run: python3 -m py_compile scripts/changelog.py
+
       - name: Build (warnings as errors)
         run: swift build -Xswiftc -warnings-as-errors
 

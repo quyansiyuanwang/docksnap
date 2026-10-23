@@ -21,3 +21,10 @@
   (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`) and a `*.zh-CN.md` translation,
   each linking to the other. Keep them in sync when behaviour changes. Other
   docs stay in English.
+- `CHANGELOG.md` and `CHANGELOG.zh-CN.md` are generated at release time by
+  `scripts/changelog.py` from the conventional commits between two tags; never
+  edit them by hand. The release workflow writes both files, commits them to
+  `main`, and publishes the GitHub release notes from the same data. Commit
+  prefixes therefore matter: `feat:`, `fix:` and `perf:`/`refactor:` map to
+  *Added*, *Fixed* and *Changed*; `docs:`, `ci:`, `build:`, `test:`, `style:`
+  and `chore:` produce no entry unless the change is user-visible.
