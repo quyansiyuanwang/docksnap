@@ -25,6 +25,21 @@ Requirements: macOS 13 or later, Swift 6.0 or later, no Xcode project.
   Cocoa conversion only in `Screens.swift`.
 - Commit messages: concise and conventional (`feat:`, `fix:`, `docs:`, ...).
 
+## Changelog
+
+Do not edit `CHANGELOG.md` or `CHANGELOG.zh-CN.md`. Both files are generated at
+release time from the conventional commit messages between two tags:
+
+```sh
+python3 scripts/changelog.py --tag v0.2.0 --write --notes-out release-notes.md
+```
+
+The release workflow runs the same script, commits the result to `main`, and
+uses the generated notes for the GitHub release. Commit messages therefore drive
+the changelog: `feat:` becomes *Added*, `fix:` *Fixed*, and `perf:`, `refactor:`
+or `revert:` *Changed*. `docs:`, `ci:`, `build:`, `test:`, `style:` and `chore:`
+commits produce no entry unless they change user-visible behaviour.
+
 ## Pull requests
 
 Describe the behaviour change and how it was verified. Include the output of

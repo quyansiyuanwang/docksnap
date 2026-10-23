@@ -6,11 +6,8 @@
 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循
 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [未发布]
-
-### 新增
-
-- 全局快捷键共享的修饰键选项；菜单灰色快捷键提示立即同步更新，选择跨启动保留。
+以下段落由发布工作流根据每个版本的约定式提交信息，通过
+`scripts/changelog.py` 生成。请勿手动编辑本文件；`CHANGELOG.md` 在同一次运行中生成。
 
 ## [0.1.0] - 2026-10-16
 
