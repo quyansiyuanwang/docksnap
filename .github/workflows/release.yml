@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to generate the changelog and release for
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -13,11 +19,68 @@ concurrency:
 
 jobs:
   release:
-    name: Build and publish
+    name: Generate changelog, build and publish
     runs-on: macos-15
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      CHANGELOG_LLM_BASE_URL: ${{ vars.CHANGELOG_LLM_BASE_URL }}
+      CHANGELOG_LLM_MODEL: ${{ vars.CHANGELOG_LLM_MODEL }}
+      CHANGELOG_LLM_API_KEY: ${{ secrets.CHANGELOG_LLM_API_KEY }}
     steps:
-      - name: Checkout
+      - name: Check out main with full history
         uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch tags
+        run: git fetch --tags --force origin
+
+      - name: Check the model configuration
+        run: |
+          status=0
+          for name in CHANGELOG_LLM_BASE_URL CHANGELOG_LLM_MODEL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is not set; add it as a repository variable."
+              status=1
+            fi
+          done
+          if [ -z "$CHANGELOG_LLM_API_KEY" ]; then
+            echo "::error::CHANGELOG_LLM_API_KEY is not set; add it as a repository secret."
+            status=1
+          fi
+          exit "$status"
+
+      - name: Generate the bilingual changelog
+        run: |
+          python3 scripts/changelog.py \
+            --tag "$TAG" \
+            --write \
+            --notes-out "$RUNNER_TEMP/release-notes.md"
+
+      - name: Commit the changelog to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- CHANGELOG.md CHANGELOG.zh-CN.md; then
+            echo "The changelog is already up to date."
+          else
+            git add CHANGELOG.md CHANGELOG.zh-CN.md
+            git commit -m "docs: changelog for $TAG [skip ci]"
+          fi
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase --autostash origin main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push rejected, retrying."
+            sleep 5
+          done
+          echo "::error::Could not push the changelog to main."
+          exit 1
+
+      - name: Check out the tagged tree
+        run: git checkout "$TAG"
 
       - name: Swift version
         run: swift --version
@@ -27,7 +90,7 @@ jobs:
 
       - name: Package
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${TAG#v}"
           cd dist
           zip -qry "DockSnap-${VERSION}.zip" DockSnap.app
           shasum -a 256 "DockSnap-${VERSION}.zip" > SHA256SUMS
@@ -39,13 +102,16 @@ jobs:
         run: |
           shopt -s nullglob
           assets=(dist/DockSnap-*.zip dist/SHA256SUMS)
-          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "Release $GITHUB_REF_NAME already exists; uploading assets."
-            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; updating notes and assets."
+            gh release edit "$TAG" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
+              --repo "$GITHUB_REPOSITORY"
+            gh release upload "$TAG" "${assets[@]}" --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$GITHUB_REF_NAME" \
-              --title "$GITHUB_REF_NAME" \
-              --generate-notes \
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
               --repo "$GITHUB_REPOSITORY" \
               "${assets[@]}"
           fi
